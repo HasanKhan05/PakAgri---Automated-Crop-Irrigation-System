@@ -131,7 +131,10 @@ classDiagram
 
 - **Polymorphic Sensor Monitoring:** Simulated continuous sampling of environmental soil moisture and ambient temperature using virtual method dispatch.
 - **Automated Actuation Recommendations:** Real-time rule engine that checks current soil moisture against crop-specific thresholds, automatically prompting `WaterAction` or `FertilizeAction` when conditions warrant.
-- **Crop Growth Progression:** Autonomous growth lifecycle advancement (`Seedling` $ightarrow$ `Vegetative` $ightarrow$ `Flowering` $ightarrow$ `Maturity`) as watering actions are executed over time.
+- **Crop Growth Progression:** Autonomous growth lifecycle advancement (`Seedling` $
+ightarrow$ `Vegetative` $
+ightarrow$ `Flowering` $
+ightarrow$ `Maturity`) as watering actions are executed over time.
 - **Custom Dynamic Memory Allocation:** Heap-allocated crop array with automatic capacity doubling and safe memory reclamation, avoiding memory leaks without relying on STL containers.
 - **Dual-Format Data Persistence:** Synchronous binary file serialization ensuring fast, compact state preservation alongside human-readable text exports.
 - **Formatted Terminal UI:** Clean terminal layout built with custom stream buffering, margin indentations, loading progress indicators, and ANSI color highlights.
