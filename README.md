@@ -15,7 +15,7 @@ An object-oriented agricultural automation simulation built in C++ featuring pol
 
 ### Navigation
 
-[Overview](#project-overview) · [OOP Architecture](#object-oriented-architecture) · [Class Hierarchy](#class-hierarchy--responsibilities) · [Core Features](#core-features) · [Data Persistence](#dual-format-persistence) · [Project Structure](#project-structure) · [Compilation & Setup](#compilation--execution) · [Interactive Console UI](#interactive-console-ui) · [Author](#author)
+[Overview](#project-overview) · [OOP Architecture](#object-oriented-architecture) · [Class Hierarchy](#class-hierarchy--responsibilities) · [Core Features](#core-features) · [Data Persistence](#dual-format-persistence) · [Project Structure](#project-structure) · [Memory & Internals](#dynamic-memory-management--system-internals) · [Decision Engine](#environmental-telemetry--decision-engine-lifecycle) · [Author](#author)
 
 ---
 
@@ -167,41 +167,46 @@ PakAgri---Automated-Crop-Irrigation-System/
 
 ---
 
-## Compilation & Execution
+## Dynamic Memory Management & System Internals
 
-### Prerequisites
+PakAgri maintains strict memory invariants and low-level resource management without relying on STL dynamic containers:
 
-- **C++ Compiler:** `g++` (GCC) with C++17 support or MSVC / Clang.
-
-### Compilation
-
-```bash
-# Compile the application
-g++ -std=c++17 OOP_Project.cpp -o pakagri
-
-# Run the executable
-./pakagri
-```
-
-### On Windows (PowerShell):
-
-```powershell
-g++ -std=c++17 OOP_Project.cpp -o pakagri.exe
-.\pakagri.exe
-```
+- **Custom Dynamic Array Resizing:** The `CropManager` allocates internal memory directly on the free store using typed array pointers `Crop* crops`. When the collection exceeds its allocation capacity, `resize()` executes an exponential capacity doubling strategy ($C_{t+1} = 2 \cdot C_t$), allocating a new contiguous buffer, performing element-by-element deep copies with copy constructors, and freeing the superseded memory block via `delete[] crops` to eliminate memory leaks.
+- **Terminal Stream Buffer Interception (`MarginBuf`):** Implements an object-oriented stream buffer wrapper deriving from `std::streambuf`. By overriding the virtual `overflow(int ch)` method, the buffer intercepts every character transmitted to `std::cout`, injects uniform left-margin formatting spaces upon newline triggers, and applies ANSI bold blue styling (`\033[1;34m`) without altering client print syntax.
+- **Resource Ownership & Rule of Three:** The management layer maintains clear ownership semantics, coordinating constructors, destructors, and dynamic reallocations to safely govern object lifetimes across deep hierarchies.
 
 ---
 
-## Interactive Console UI
+## Environmental Telemetry & Decision Engine Lifecycle
 
-The application runs an interactive menu loop with options:
+The system coordinates continuous environmental monitoring with deterministic agronomic interventions:
 
-1. **Register New Crop:** Enter crop name, moisture threshold (0–100%), planting date (DD MM YYYY), and initial fertilization state.
-2. **View All Crops:** Displays a formatted table listing registered crops, current growth stages, moisture thresholds, and fertilization age.
-3. **Simulate Environmental Sensors:** Polls `MoistureSensor` and `TemperatureSensor` to display live soil and climate readings.
-4. **Evaluate Automated Actions:** Runs the rule engine to identify crops falling below moisture thresholds or overdue for fertilization, offering one-click execution of `WaterAction` and `FertilizeAction`.
-5. **Update Crop Parameters:** Adjust moisture thresholds, modify planting dates, or update fertilization tracking.
-6. **Save & Exit:** Automatically serializes current farm states to `crops.dat`, `thresholds.dat`, and updates `crops.txt`.
+```mermaid
+stateDiagram-v2
+    [*] --> Standby: Initialize System & Load Crops
+    Standby --> PollingSensors: Sample Telemetry
+    PollingSensors --> EvaluatingConditions: Compute Moisture & Temp Deltas
+    
+    EvaluatingConditions --> NeedsWater: Moisture < Threshold
+    EvaluatingConditions --> NeedsFertilizer: Days Since Fertilized > Cycle Limit
+    EvaluatingConditions --> Healthy: State Within Tolerances
+    
+    NeedsWater --> ExecutingWaterAction: Polymorphic Dispatch (WaterAction)
+    ExecutingWaterAction --> AdvancingGrowthStage: Stage Progression
+    AdvancingGrowthStage --> SerializingState: Commit to Dual-Format Files
+    
+    NeedsFertilizer --> ExecutingFertilizeAction: Polymorphic Dispatch (FertilizeAction)
+    ExecutingFertilizeAction --> ResettingCycle: Reset Fertilizer Timer
+    ResettingCycle --> SerializingState
+    
+    Healthy --> Standby
+    SerializingState --> Standby
+```
+
+1. **Stochastic Sensor Sampling:** `MoistureSensor` and `TemperatureSensor` generate simulated real-world telemetry streams, modeling soil drying curves and ambient temperature spikes.
+2. **Deterministic Evaluation:** The decision engine compares current moisture values $M_{\text{curr}}$ against crop-specific requirement thresholds $M_{\text{target}}$, triggering `WaterAction` when $M_{\text{curr}} < M_{\text{target}}$.
+3. **Growth Cycle Advancements:** Execution of watering actions dynamically drives physiological growth progressions (`Seedling` → `Vegetative` → `Flowering` → `Maturity`).
+4. **State Commit:** Every agricultural intervention is serialized synchronously to binary storage (`crops.dat`, `thresholds.dat`) and plain-text audit logs (`crops.txt`).
 
 ---
 
